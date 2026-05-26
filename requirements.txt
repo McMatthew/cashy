@@ -1,0 +1,6 @@
+PyQt6>=6.6.0
+psutil>=5.9.0
+pyinstaller>=6.0.0
+pywin32>=306
+# Optional: thermal printer direct ESC/POS (USB/COM/LPT ports)
+# python-escpos>=3.0.0

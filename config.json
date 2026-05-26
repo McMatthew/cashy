@@ -1,0 +1,9 @@
+{
+  "nome_evento": "Anniversario Croce Rossa",
+  "data_evento": "13/06/2026",
+  "orario_evento": "10:00 - 22:00",
+  "messaggio_scontrino": "Buon appetito",
+  "porta_stampante": "POS-80",
+  "numero_progressivo": true,
+  "theme": "dark"
+}

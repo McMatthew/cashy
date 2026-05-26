@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-tint": "#4edea3",
+                      "surface-dim": "#0b1326",
+                      "on-primary-fixed": "#002113",
+                      "on-surface-variant": "#bbcabf",
+                      "on-error": "#690005",
+                      "inverse-primary": "#006c49",
+                      "primary-fixed-dim": "#4edea3",
+                      "primary": "#4edea3",
+                      "error": "#ffb4ab",
+                      "on-background": "#dae2fd",
+                      "surface": "#0b1326",
+                      "primary-fixed": "#6ffbbe",
+                      "on-secondary-container": "#5b3800",
+                      "on-tertiary-fixed": "#0d1c2f",
+                      "on-primary-fixed-variant": "#005236",
+                      "surface-container": "#171f33",
+                      "outline-variant": "#3c4a42",
+                      "tertiary": "#b9c7e0",
+                      "background": "#0b1326",
+                      "inverse-surface": "#dae2fd",
+                      "on-secondary-fixed-variant": "#653e00",
+                      "secondary-fixed": "#ffddb8",
+                      "outline": "#86948a",
+                      "on-tertiary-fixed-variant": "#3a485c",
+                      "on-secondary": "#472a00",
+                      "on-surface": "#dae2fd",
+                      "secondary-fixed-dim": "#ffb95f",
+                      "inverse-on-surface": "#283044",
+                      "surface-container-lowest": "#060e20",
+                      "surface-variant": "#2d3449",
+                      "primary-container": "#10b981",
+                      "on-primary": "#003824",
+                      "on-primary-container": "#00422b",
+                      "surface-container-highest": "#2d3449",
+                      "on-tertiary": "#233144",
+                      "error-container": "#93000a",
+                      "on-error-container": "#ffdad6",
+                      "surface-bright": "#31394d",
+                      "secondary": "#ffb95f",
+                      "tertiary-fixed-dim": "#b9c7e0",
+                      "secondary-container": "#ee9800",
+                      "on-secondary-fixed": "#2a1700",
+                      "on-tertiary-container": "#2c3a4e",
+                      "tertiary-container": "#95a4bb",
+                      "surface-container-low": "#131b2e",
+                      "surface-container-high": "#222a3d",
+                      "tertiary-fixed": "#d5e3fd"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-lg": "2rem",
+                      "touch-target-min": "48px",
+                      "stack-md": "1rem",
+                      "margin-edge": "1.5rem",
+                      "gutter": "1rem",
+                      "stack-sm": "0.5rem"
+              },
+              "fontFamily": {
+                      "body-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "display-price": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "label-bold": ["Inter"],
+                      "headline-md": ["Inter"]
+              },
+              "fontSize": {
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                      "body-lg": ["18px", {"lineHeight": "26px", "fontWeight": "400"}],
+                      "display-price": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "label-bold": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                      "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col overflow-hidden">
+<!-- TopNavBar -->
+<header class="bg-surface-container-highest dark:bg-surface-container-highest flex justify-between items-center w-full px-margin-edge h-touch-target-min border-b border-outline-variant docked full-width top-0 z-50">
+<div class="flex items-center gap-8">
+<span class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary">Cashbox</span>
+<div class="hidden md:flex items-center bg-surface-container-low rounded-lg px-4 py-1 border border-outline-variant w-64 lg:w-96">
+<span class="material-symbols-outlined text-on-surface-variant mr-2" data-icon="search">search</span>
+<input class="bg-transparent border-none text-on-surface focus:ring-0 w-full font-body-md text-body-md" placeholder="Search menu or orders..." type="text"/>
+</div>
+</div>
+<nav class="hidden lg:flex items-center gap-6 h-full">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 hover:text-primary-fixed-dim transition-colors transition-colors font-label-bold text-label-bold" href="#">Dashboard</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors font-label-bold text-label-bold" href="#">Orders</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors font-label-bold text-label-bold" href="#">Inventory</a>
+<a class="text-on-surface-variant font-medium hover:text-primary-fixed-dim transition-colors font-label-bold text-label-bold" href="#">Reports</a>
+</nav>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-primary" data-icon="battery_full">battery_full</span>
+<span class="material-symbols-outlined text-primary" data-icon="account_circle">account_circle</span>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Column: Additional Info -->
+<aside class="w-1/4 min-w-[320px] bg-surface-container border-r border-outline-variant flex flex-col p-stack-md gap-stack-md overflow-y-auto"><div class="bg-surface-container-high border border-outline-variant rounded-xl p-4 flex flex-col gap-2"><p class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider mb-2">Event Info</p><div class="flex flex-col gap-1"><h2 class="font-headline-md text-headline-md text-on-surface">Art &amp; Coffee Festival</h2><p class="font-body-md text-body-md text-on-surface-variant">October 24, 2023</p><p class="font-body-md text-body-md text-on-surface-variant">09:00 AM - 06:00 PM</p></div></div><div class="flex flex-col gap-3"><h3 class="font-label-bold text-label-bold text-on-surface-variant uppercase tracking-wider">Last Transaction</h3><div class="bg-surface-container-low p-4 rounded-lg border border-outline-variant flex flex-col gap-2"><div><p class="font-label-sm text-label-sm text-on-surface-variant">ID: #9921</p><p class="font-headline-md text-headline-md text-primary">$11.75</p></div><div class="border-t border-outline-variant pt-2"><p class="font-body-md text-body-md text-on-surface">1x Artisan Latte, 2x Butter Croissant</p></div></div></div></aside>
+<!-- Center Column: Product Selection -->
+<section class="w-1/2 flex flex-col bg-surface-container-lowest overflow-hidden">
+<!-- Categories Header -->
+<div class="p-stack-md flex gap-4 overflow-x-auto border-b border-outline-variant scrollbar-hide">
+<button class="bg-primary text-on-primary font-label-bold text-label-bold px-6 py-3 rounded-lg flex-shrink-0">All Items</button>
+<button class="bg-surface-container-highest text-on-surface font-label-bold text-label-bold px-6 py-3 rounded-lg flex-shrink-0 hover:bg-surface-variant transition-all">Drinks</button>
+<button class="bg-surface-container-highest text-on-surface font-label-bold text-label-bold px-6 py-3 rounded-lg flex-shrink-0 hover:bg-surface-variant transition-all">Snacks</button>
+<button class="bg-surface-container-highest text-on-surface font-label-bold text-label-bold px-6 py-3 rounded-lg flex-shrink-0 hover:bg-surface-variant transition-all">Meals</button>
+<button class="bg-surface-container-highest text-on-surface font-label-bold text-label-bold px-6 py-3 rounded-lg flex-shrink-0 hover:bg-surface-variant transition-all">Desserts</button>
+</div>
+<!-- Product Grid -->
+<div class="flex-1 p-stack-md overflow-y-auto">
+<div class="grid grid-cols-2 xl:grid-cols-3 gap-4">
+<!-- Product Tile 1 -->
+<button class="flex flex-col text-left bg-surface-container-high rounded-xl border border-outline-variant overflow-hidden hover:border-primary transition-all active:scale-[0.98]">
+<div class="h-32 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A professional high-angle photograph of a rich café latte with detailed foam art in a ceramic cup, set against a dark textured background. The lighting is focused and warm, highlighting the creamy texture of the milk and the deep espresso tones. The overall aesthetic is clean, minimalist, and upscale for a high-end coffee shop terminal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB4SJJp0XjP_79xBfm9OL77WxBSjd87vjBjbZRnpWL94JkaW0KVnUXsq4ZNKTIK83sMWsQVXKPHarsB_HGfc4zvjy0kPgtWzdH89tmgZr6ru8_602CB4HO66O8m5X8OBErNhT0fC_tM8fjhvrX-BnvP3YSlRnOnX8WBIvaXwNUA8P0QRKeDTt_vQhFnwUfqWqQ0zqm0a09VJps2qNFXo7BFb3QP5Ac9YY_CE2Ruy7LIGRKjmV7-Lv_p1PqWXqlfa5Dtlv3BiADXcgWe"/>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<span class="font-label-bold text-label-bold text-on-surface">Artisan Latte</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">$4.50</span>
+</div>
+</button>
+<!-- Product Tile 2 -->
+<button class="flex flex-col text-left bg-surface-container-high rounded-xl border border-outline-variant overflow-hidden hover:border-primary transition-all active:scale-[0.98]">
+<div class="h-32 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A macro shot of a freshly baked croissant with a golden, flaky crust and visible layers. The lighting is crisp and overhead, emphasizing the crunchy texture of the pastry on a slate-colored plate. The mood is authentic and artisanal, fitting a modern retail bakery interface with deep shadows and highlighted edges." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1OZr4korSAMBsjHCRzxSxqJ2Bei1Q1C-GpRGH9v3zyVMov6YhaAmENb_AqQfUfBm9_H7lYissDNH8XU1X0iqRWw3Qk-RJ_m0KXjOH0za_XCqm_ZlkkJe_JmJPrTEDCbc_SP1C0bqsATigJGhnqQdfAYCnI9Hjxjgj4JtyAe4jauT5mWm3sF_bPFaYqGYye4DQ9U5w9nRHPIGp-nZB5WCnym6xkvOFb_-fruBZZcA_hE9iuWtWkziE34IEnAOmYA4XiMNSJEwbs7kE"/>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<span class="font-label-bold text-label-bold text-on-surface">Butter Croissant</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">$3.25</span>
+</div>
+</button>
+<!-- Product Tile 3 -->
+<button class="flex flex-col text-left bg-surface-container-high rounded-xl border border-outline-variant overflow-hidden hover:border-primary transition-all active:scale-[0.98]">
+<div class="h-32 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="An overhead flat lay of a fresh avocado toast topped with vibrant greens and chili flakes on thick-cut sourdough bread. The setting is a minimalist wooden table with soft side lighting that creates a natural, healthy feel. The color palette is dominated by deep greens and earthy browns, perfectly aligned with a professional POS terminal's rugged, functional design." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCavF1wVgZt5KF6Vs4XqRtObxwykfPDrAo25ZSzbWriXoEnqc1aE2lXeNg4Ns2GhInz7z0fj_QFimLi22_Nc1edtPI4TuTzSk2v3AtDIM-OGEH9uUxiCXqJEWJF9ekDfY-IIY4GFWUK0atBaqPHoZu1Cvbfha03GPLXY4aTpNAE9W1NtWa4BPRqe31Bcpvec64VduaadHp0bkqd9B14BrI5OhEpPUtOis2XVFn1BDR1ljgJNgTSa5EW2WnPayG0zw_Gx8GNHWYnksEN"/>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<span class="font-label-bold text-label-bold text-on-surface">Avocado Toast</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">$12.00</span>
+</div>
+</button>
+<!-- Product Tile 4 -->
+<button class="flex flex-col text-left bg-surface-container-high rounded-xl border border-outline-variant overflow-hidden opacity-40 grayscale cursor-not-allowed">
+<div class="h-32 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A gourmet cheeseburger with melting cheese and fresh vegetables, presented in a high-contrast food photography style. The image is desaturated to signify an out-of-stock item, maintaining clear visibility but muted colors like grey and soft charcoal. The composition is centered and bold, suitable for a touchscreen industrial terminal interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9fnn2axxuoX7PCv9g7NU0RoU1PVmrlG2bYtqt0hLyGUHBdTmKtdvJH-jiuWiEiAS9S-sWImSYZHIaYUthcgUt2bseT1FNocDy0s12hTmB_R_tffiGvH1BBTNaDLZc6XkUInM75cuSKwZhw0OWgqYUg6LA70Yqq11-a7J7QRf8GNiTA2C9y0XPcgpd8R72NQzzFr4G4LdlifZ9HULAi0Cg0G6jqd16GLRhtFEoOLqmn1PBozbzrUxHdmgCBIFZNcUTXfTwUH7qR8R-"/>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<div class="flex flex-col">
+<span class="font-label-bold text-label-bold text-on-surface">Classic Burger</span>
+<span class="text-[10px] text-error font-bold uppercase">Out of Stock</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface-variant mt-1">$14.50</span>
+</div>
+</button>
+<!-- Product Tile 5 -->
+<button class="flex flex-col text-left bg-surface-container-high rounded-xl border border-outline-variant overflow-hidden hover:border-primary transition-all active:scale-[0.98]">
+<div class="h-32 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A vibrant salad bowl featuring assorted fresh vegetables, quinoa, and a light dressing in a clean white bowl. The lighting is bright and even, highlighting the diverse textures of the greens and seeds. The visual style is modern, clinical, and high-contrast, designed to stand out against a dark slate UI environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeI2rfKuYxlmeXQnlfq9qBm6IWlGGyuTfPCfFrz1BM3YudbeFM7GszCGDI80Ge1GHoUYQ2HiD1-JTiJJnAVQSXNoRAsp5_NJDPdI83T3HpwDvPA-yZP49EpbiqzO0LD5pfqdPcScXssks5PiCSGG_6V709vrtqbhqQKImJP6mLqEDLB3dg_DDHfy_5ZzK7MJHEg1Mx31jqt_o1xk0HFrFsUmzEEUu59VynipDn4ykquxtgBDfQKVFgvL3WwEQWckw0vWDJhAWZUCE7"/>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<span class="font-label-bold text-label-bold text-on-surface">Garden Bowl</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">$11.20</span>
+</div>
+</button>
+<!-- Product Tile 6 -->
+<button class="flex flex-col text-left bg-surface-container-high rounded-xl border border-outline-variant overflow-hidden hover:border-primary transition-all active:scale-[0.98]">
+<div class="h-32 w-full overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A close-up of a glazed doughnut with colorful sprinkles, showing a moist and fluffy texture. The lighting is soft and ambient, creating a sweet and inviting mood. The image maintains professional food styling with sharp focus and deep tonal depth, optimized for industrial-grade tablet screens in a retail setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAk5mCb_RWMSipJuDNoABBoVBYGXDwRgEfSs7c63XE_pNyfPW7qvs9y0CRsNuahVZKutouyD4gn4Zl_P-T8racfZ9DTiEd27v8fvJLnbcMNHdB2Df4wd-ilyxJaM1N1E8Ta6n9YZWvkd2-LDKWyhRnV4dJGvgEVYiTS03uZNeD3c2Bwz7xH6bhrf2T3jtSmTaVFyUbHfCRJv0vvB-FYlG6Xd7kmkbnELHAFYYZ3v81BMMvbic2KwJV0jechARhaCYDdPyufYgddFyru"/>
+</div>
+<div class="p-3 flex-1 flex flex-col justify-between">
+<span class="font-label-bold text-label-bold text-on-surface">Glazed Doughnut</span>
+<span class="font-headline-md text-headline-md text-primary mt-1">$2.75</span>
+</div>
+</button>
+</div>
+</div>
+</section>
+<!-- Right Column: Command Console / Receipt -->
+<section class="w-1/4 min-w-[320px] bg-surface-container border-l border-outline-variant flex flex-col overflow-hidden">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-high">
+<h3 class="font-headline-md text-headline-md text-on-surface">Current Order</h3>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-1 rounded text-label-sm font-label-bold">TABLE 04</span>
+</div>
+<!-- Cart List -->
+<div class="flex-1 overflow-y-auto p-2 flex flex-col gap-1"><div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant h-16 group"><div class="flex-1 flex flex-col justify-center"><div class="flex items-center gap-2"><p class="font-label-bold text-label-bold text-on-surface truncate">Artisan Latte</p><button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">edit</span></button></div></div><div class="flex items-center bg-surface-container-highest rounded-lg overflow-hidden border border-outline-variant h-10"><button class="px-2 text-primary hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-sm" data-icon="remove">remove</span></button><span class="px-3 font-label-bold text-label-bold text-on-surface">1</span><button class="px-2 text-primary hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-sm" data-icon="add">add</span></button></div><div class="w-16 text-right font-label-bold text-label-bold text-on-surface">$5.25</div><button class="text-error opacity-60 hover:opacity-100 transition-opacity ml-2"><span class="material-symbols-outlined" data-icon="close">close</span></button></div><div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant h-16 group"><div class="flex-1 flex flex-col justify-center"><div class="flex items-center gap-2"><p class="font-label-bold text-label-bold text-on-surface truncate">Butter Croissant</p><button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-sm">edit</span></button></div></div><div class="flex items-center bg-surface-container-highest rounded-lg overflow-hidden border border-outline-variant h-10"><button class="px-2 text-primary hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-sm" data-icon="remove">remove</span></button><span class="px-3 font-label-bold text-label-bold text-on-surface">2</span><button class="px-2 text-primary hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-sm" data-icon="add">add</span></button></div><div class="w-16 text-right font-label-bold text-label-bold text-on-surface">$6.50</div><button class="text-error opacity-60 hover:opacity-100 transition-opacity ml-2"><span class="material-symbols-outlined" data-icon="close">close</span></button></div></div>
+<!-- Totals and Checkout -->
+<div class="bg-surface-container-high border-t border-outline-variant p-stack-md flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center text-on-surface-variant font-label-bold text-label-bold">
+<span>Subtotal</span>
+<span>$11.75</span>
+</div>
+<div class="flex justify-between items-center pt-2 border-t border-outline-variant mt-2">
+<span class="font-headline-md text-headline-md text-on-surface">Total</span>
+<span class="font-display-price text-display-price text-primary">$12.75</span>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-2"><button class="bg-surface-container-highest border border-outline-variant py-4 rounded-xl font-label-bold text-label-bold text-on-surface hover:bg-surface-variant transition-all flex items-center justify-center gap-2"><span class="material-symbols-outlined">print_disabled</span> Don't print</button></div>
+<button class="bg-primary-container text-on-primary-container h-touch-target-min rounded-xl font-headline-md text-headline-md font-bold uppercase tracking-widest hover:bg-primary transition-all active:scale-[0.97] flex items-center justify-center gap-3 shadow-lg shadow-primary/10">
+<span class="material-symbols-outlined text-3xl" data-icon="shopping_cart_checkout">shopping_cart_checkout</span>
+                    CHECKOUT
+                </button>
+</div>
+</section>
+</main>
+<!-- Numpad Modal Overlay (Hidden by default, shown for manual entry) -->
+<div class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+<div class="bg-surface-container rounded-2xl border border-outline-variant p-6 w-[400px] shadow-2xl">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-md text-headline-md text-on-surface">Enter PIN</h2>
+<button class="text-on-surface-variant"><span class="material-symbols-outlined" data-icon="close">close</span></button>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 mb-6 text-center">
+<span class="text-3xl font-display-price tracking-[1rem] text-primary">••••</span>
+</div>
+<div class="grid grid-cols-3 gap-3">
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">1</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">2</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">3</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">4</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">5</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">6</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">7</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">8</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">9</button>
+<button class="h-16 bg-error/20 text-error border border-error/50 rounded-xl text-2xl font-bold hover:bg-error/30">C</button>
+<button class="h-16 bg-surface-container-high border border-outline-variant rounded-xl text-2xl font-bold hover:bg-surface-variant">0</button>
+<button class="h-16 bg-primary-container text-on-primary-container rounded-xl text-2xl font-bold hover:bg-primary transition-all">OK</button>
+</div>
+</div>
+</div>
+</body></html>
