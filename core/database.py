@@ -279,6 +279,12 @@ class DatabaseManager:
                         continue
                 conn.commit()
 
+    def annulla_ordine(self, ordine_id: int):
+        with self._connect() as conn:
+            conn.execute("DELETE FROM righe_ordine WHERE ordine_id = ?", (ordine_id,))
+            conn.execute("DELETE FROM ordini WHERE id = ?", (ordine_id,))
+            conn.commit()
+
     def export_csv_ordini(self, path):
         with self._connect() as conn:
             ordini = conn.execute("SELECT * FROM ordini ORDER BY id DESC").fetchall()

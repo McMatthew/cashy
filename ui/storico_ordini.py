@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QSplitter,
-    QWidget, QFrame, QFileDialog, QMessageBox, QLineEdit
+    QWidget, QFrame, QFileDialog, QMessageBox, QLineEdit, QMenu
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction
 from ui.theme import C
 from ui.scontrino_dialog import ScontrinoDialog
 from datetime import datetime
@@ -69,6 +70,8 @@ class StoricoOrdini(QDialog):
         self._orders_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self._orders_table.verticalHeader().setVisible(False)
         self._orders_table.selectionModel().selectionChanged.connect(self._on_selection)
+        self._orders_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._orders_table.customContextMenuRequested.connect(self._context_menu_ordine)
         left_layout.addWidget(self._orders_table)
 
         splitter.addWidget(left_widget)
@@ -230,17 +233,18 @@ class StoricoOrdini(QDialog):
         dlg.exec()
 
     def _stampa_resoconto(self):
-        if not self._ordini_filtrati:
-            QMessageBox.information(self, "Info", "Nessun ordine da riepilogare.")
+        today = datetime.now().strftime("%Y-%m-%d")
+        ordini_oggi = [o for o in self._ordini if o.get("data_ora", "").startswith(today)]
+        if not ordini_oggi:
+            QMessageBox.information(self, "Info", "Nessun ordine oggi.")
             return
-        ordine_ids = [o["id"] for o in self._ordini_filtrati]
+        ordine_ids = [o["id"] for o in ordini_oggi]
         righe_aggregate = self._db.get_resoconto_per_ordini(ordine_ids)
-        n_ordini = len(self._ordini_filtrati)
-        totale = sum(o["totale"] for o in self._ordini_filtrati)
+        n_ordini = len(ordini_oggi)
+        totale = sum(o["totale"] for o in ordini_oggi)
 
-        query = self._search_input.text().strip()
         now_str = datetime.now().strftime("%d/%m/%Y %H:%M")
-        data_ora = f"{query} - {now_str}" if query else now_str
+        data_ora = now_str
 
         testo = genera_resoconto(self._config, data_ora, righe_aggregate, n_ordini, totale)
         porta = self._config.get("porta_stampante", "")
@@ -259,3 +263,32 @@ class StoricoOrdini(QDialog):
                 QMessageBox.information(self, "Esportazione completata", "Ordini esportati con successo.")
             except Exception as e:
                 QMessageBox.critical(self, "Errore", f"Errore durante l'esportazione:\n{e}")
+
+    def _context_menu_ordine(self, pos):
+        row = self._orders_table.rowAt(pos.y())
+        if row < 0 or row >= len(self._ordini_filtrati):
+            return
+        menu = QMenu(self)
+        act = QAction("Annulla ordine", self)
+        act.triggered.connect(lambda: self._annulla_ordine(row))
+        menu.addAction(act)
+        menu.exec(self._orders_table.viewport().mapToGlobal(pos))
+
+    def _annulla_ordine(self, row):
+        ordine = self._ordini_filtrati[row]
+        risposta = QMessageBox.question(
+            self, "Conferma annullamento",
+            f"Annullare l'ordine #{ordine['id']} del {ordine.get('data_ora', '')}?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if risposta != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            self._db.annulla_ordine(ordine["id"])
+            self._carica_ordini()
+            self._detail_table.setRowCount(0)
+            self._tot_lbl.setText("Totale: —")
+            self._ric_lbl.setText("Ricevuto: —")
+            self._res_lbl.setText("Resto: —")
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", f"Impossibile annullare l'ordine:\n{e}")
