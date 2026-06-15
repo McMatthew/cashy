@@ -270,6 +270,78 @@ class DatabaseManager:
             """, ordine_ids).fetchall()
         return [dict(r) for r in rows]
 
+    # ── Listino: serializzazione JSON per sincronizzazione Bluetooth ──────
+
+    LISTINO_TIPO = "cashy_listino"
+    LISTINO_VERSIONE = 1
+
+    def esporta_listino(self) -> dict:
+        """Serializza il catalogo (prodotti attivi + categorie) in un dict JSON-safe.
+
+        Le foto NON vengono incluse: i path sono locali alla macchina mittente e non
+        avrebbero senso sul ricevente.
+        """
+        prodotti = []
+        for p in self.get_prodotti_attivi():
+            prodotti.append({
+                "nome": p["nome"],
+                "prezzo": p["prezzo"],
+                "categoria": p["categoria"],
+                "colore": p["colore"],
+                "quantita_magazzino": p.get("quantita_magazzino"),
+                "limite_scorta": p.get("limite_scorta"),
+            })
+        categorie = [
+            {"nome": c["nome"], "scontrino_separato": int(c["scontrino_separato"])}
+            for c in self.get_categorie_full()
+        ]
+        return {
+            "tipo": self.LISTINO_TIPO,
+            "versione": self.LISTINO_VERSIONE,
+            "prodotti": prodotti,
+            "categorie": categorie,
+        }
+
+    def importa_listino(self, package: dict):
+        """Rimpiazza interamente prodotti e categorie locali con quelli del pacchetto.
+
+        Solleva ValueError se il pacchetto non è un listino Cashy valido. Gli ordini
+        storici non vengono toccati (usano snapshot di nome/prezzo).
+        """
+        if not isinstance(package, dict) or package.get("tipo") != self.LISTINO_TIPO:
+            raise ValueError("Il pacchetto ricevuto non è un listino Cashy valido.")
+        if package.get("versione") != self.LISTINO_VERSIONE:
+            raise ValueError(
+                f"Versione listino non supportata: {package.get('versione')!r}."
+            )
+        prodotti = package.get("prodotti")
+        categorie = package.get("categorie")
+        if not isinstance(prodotti, list) or not isinstance(categorie, list):
+            raise ValueError("Pacchetto listino malformato: prodotti/categorie mancanti.")
+
+        with self._connect() as conn:
+            conn.execute("DELETE FROM prodotti")
+            conn.execute("DELETE FROM categorie")
+            for c in categorie:
+                conn.execute(
+                    "INSERT OR IGNORE INTO categorie (nome, scontrino_separato) VALUES (?,?)",
+                    (str(c["nome"]), int(c.get("scontrino_separato", 0))),
+                )
+            for p in prodotti:
+                conn.execute(
+                    "INSERT INTO prodotti (nome, prezzo, categoria, colore, attivo, foto, quantita_magazzino, limite_scorta) "
+                    "VALUES (?,?,?,?,1,'',?,?)",
+                    (
+                        str(p["nome"]),
+                        float(p["prezzo"]),
+                        str(p.get("categoria", "")),
+                        str(p.get("colore", "#1a2a3a")),
+                        p.get("quantita_magazzino"),
+                        p.get("limite_scorta"),
+                    ),
+                )
+            conn.commit()
+
     def export_csv_prodotti(self, path):
         prodotti = self.get_prodotti_tutti()
         with open(path, "w", newline="", encoding="utf-8") as f:
