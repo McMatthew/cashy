@@ -505,7 +505,7 @@ class PannelloCarrello(QWidget):
         if len(all_texts) == 1:
             ok, err = stampa_termico(testo_principale, self._config.get("porta_stampante", "USB"))
         else:
-            ok, err = stampa_multiplo(all_texts, self._config.get("porta_stampante", "USB"))
+            ok, err = stampa_multiplo(slips, self._config.get("porta_stampante", "USB"))
 
         if not ok:
             sep = "\n" + "─" * 32 + "\n"
