@@ -71,9 +71,19 @@ class _FormProdotto(QDialog):
         self._qty_input.setValue(qm if qm is not None else 0)
         self._qty_input.setEnabled(qm is not None)
         qty_row.addWidget(self._qty_input)
+        qty_row.addWidget(QLabel("Limite scorta"))
+        ls = prodotto.get("limite_scorta") if prodotto else None
+        self._limite_input = QSpinBox()
+        self._limite_input.setMaximum(999999)
+        self._limite_input.setValue(ls if ls is not None else 0)
+        self._limite_input.setEnabled(qm is not None)
+        qty_row.addWidget(self._limite_input)
         qty_row.addStretch()
         layout.addLayout(qty_row)
-        hint_qm = QLabel("Se disattivato, il prodotto è considerato sempre disponibile (scorta illimitata).")
+        hint_qm = QLabel(
+            "Se disattivato, il prodotto è considerato sempre disponibile (scorta illimitata). "
+            "Il limite scorta è la giacenza piena: sotto il 20% la quantità viene evidenziata in rosso."
+        )
         hint_qm.setWordWrap(True)
         hint_qm.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 8pt; background: transparent;")
         layout.addWidget(hint_qm)
@@ -152,6 +162,7 @@ class _FormProdotto(QDialog):
 
     def _toggle_quantita(self, checked: bool):
         self._qty_input.setEnabled(checked)
+        self._limite_input.setEnabled(checked)
 
     def _pick_color(self):
         color = QColorDialog.getColor(QColor(self._colore), self, "Scegli colore tile")
@@ -193,15 +204,17 @@ class _FormProdotto(QDialog):
         categoria = self._cat_input.currentText().strip() or "Altro"
         colore = self._colore
         foto = self._foto_path
-        quantita_magazzino = self._qty_input.value() if self._traccia_chk.isChecked() else None
+        traccia = self._traccia_chk.isChecked()
+        quantita_magazzino = self._qty_input.value() if traccia else None
+        limite_scorta = (self._limite_input.value() or None) if traccia else None
 
         if self._prodotto:
             self._db.modifica_prodotto(
                 self._prodotto["id"], nome, prezzo, categoria, colore,
-                self._prodotto.get("attivo", 1), foto, quantita_magazzino
+                self._prodotto.get("attivo", 1), foto, quantita_magazzino, limite_scorta
             )
         else:
-            self._db.aggiungi_prodotto(nome, prezzo, categoria, colore, foto, quantita_magazzino)
+            self._db.aggiungi_prodotto(nome, prezzo, categoria, colore, foto, quantita_magazzino, limite_scorta)
 
         self.accept()
 
@@ -428,7 +441,8 @@ class GestioneProdotti(QDialog):
             self._db.modifica_prodotto(
                 prodotto["id"], prodotto["nome"], prodotto["prezzo"],
                 prodotto["categoria"], prodotto["colore"], True,
-                prodotto.get("foto", ""), prodotto.get("quantita_magazzino")
+                prodotto.get("foto", ""), prodotto.get("quantita_magazzino"),
+                prodotto.get("limite_scorta")
             )
         self._carica_prodotti()
         self.prodotti_modificati.emit()

@@ -10,6 +10,11 @@ from core.database import DatabaseManager
 _GRID_SPACING = 10
 _GRID_COLS = 3
 
+# Frazione del limite di scorta sotto la quale la giacenza è considerata "in esaurimento".
+_SCORTA_BASSA_FRAZIONE = 0.20
+# Soglia fissa di fallback per i prodotti tracciati senza un limite di scorta impostato.
+_SCORTA_BASSA_FALLBACK = 30
+
 
 def _darken_color(hex_color: str, factor: float = 0.7) -> str:
     try:
@@ -84,7 +89,12 @@ class _ProdottoTile(QFrame):
         self._qty_label: QLabel | None = None
         qm = prodotto.get("quantita_magazzino")
         if qm is not None:
-            qty_color = C['error'] if qm <= 30 else C['on_surface_variant']
+            limite = prodotto.get("limite_scorta")
+            if limite:
+                soglia = limite * _SCORTA_BASSA_FRAZIONE
+            else:
+                soglia = _SCORTA_BASSA_FALLBACK
+            qty_color = C['error'] if qm <= soglia else C['on_surface_variant']
             self._qty_label = QLabel(f"{qm} pz")
             self._qty_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
             self._qty_label.setStyleSheet(f"""
