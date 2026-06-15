@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox,
-    QLineEdit, QDoubleSpinBox, QComboBox, QColorDialog, QFileDialog,
+    QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QColorDialog, QFileDialog,
     QWidget, QSizePolicy, QTabWidget, QCheckBox, QInputDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
@@ -56,6 +56,27 @@ class _FormProdotto(QDialog):
             else:
                 self._cat_input.setCurrentText(prodotto["categoria"])
         layout.addWidget(self._cat_input)
+
+        layout.addWidget(self._field_label("Quantità in magazzino"))
+        qm = prodotto.get("quantita_magazzino") if prodotto else None
+        qty_row = QHBoxLayout()
+        qty_row.setSpacing(10)
+        self._traccia_chk = QCheckBox("Traccia quantità")
+        self._traccia_chk.setChecked(qm is not None)
+        self._traccia_chk.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._traccia_chk.toggled.connect(self._toggle_quantita)
+        qty_row.addWidget(self._traccia_chk)
+        self._qty_input = QSpinBox()
+        self._qty_input.setMaximum(999999)
+        self._qty_input.setValue(qm if qm is not None else 0)
+        self._qty_input.setEnabled(qm is not None)
+        qty_row.addWidget(self._qty_input)
+        qty_row.addStretch()
+        layout.addLayout(qty_row)
+        hint_qm = QLabel("Se disattivato, il prodotto è considerato sempre disponibile (scorta illimitata).")
+        hint_qm.setWordWrap(True)
+        hint_qm.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 8pt; background: transparent;")
+        layout.addWidget(hint_qm)
 
         layout.addWidget(self._field_label("Colore sfondo"))
         color_row = QHBoxLayout()
@@ -129,6 +150,9 @@ class _FormProdotto(QDialog):
         lbl.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 9pt; font-weight: 600; background: transparent;")
         return lbl
 
+    def _toggle_quantita(self, checked: bool):
+        self._qty_input.setEnabled(checked)
+
     def _pick_color(self):
         color = QColorDialog.getColor(QColor(self._colore), self, "Scegli colore tile")
         if color.isValid():
@@ -169,14 +193,15 @@ class _FormProdotto(QDialog):
         categoria = self._cat_input.currentText().strip() or "Altro"
         colore = self._colore
         foto = self._foto_path
+        quantita_magazzino = self._qty_input.value() if self._traccia_chk.isChecked() else None
 
         if self._prodotto:
             self._db.modifica_prodotto(
                 self._prodotto["id"], nome, prezzo, categoria, colore,
-                self._prodotto.get("attivo", 1), foto
+                self._prodotto.get("attivo", 1), foto, quantita_magazzino
             )
         else:
-            self._db.aggiungi_prodotto(nome, prezzo, categoria, colore, foto)
+            self._db.aggiungi_prodotto(nome, prezzo, categoria, colore, foto, quantita_magazzino)
 
         self.accept()
 
@@ -213,8 +238,8 @@ class GestioneProdotti(QDialog):
         tp_layout.setSpacing(10)
 
         self._table = QTableWidget()
-        self._table.setColumnCount(6)
-        self._table.setHorizontalHeaderLabels(["ID", "Nome", "Prezzo", "Categoria", "Foto", "Attivo"])
+        self._table.setColumnCount(7)
+        self._table.setHorizontalHeaderLabels(["ID", "Nome", "Prezzo", "Categoria", "Foto", "Magazzino", "Attivo"])
         self._table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self._table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Stretch)
         self._table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
@@ -350,9 +375,16 @@ class GestioneProdotti(QDialog):
             foto_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self._table.setItem(i, 4, foto_item)
 
+            qm = p.get("quantita_magazzino")
+            qm_item = QTableWidgetItem("∞" if qm is None else str(qm))
+            qm_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            if qm is not None and qm == 0:
+                qm_item.setForeground(QColor(C["error"]))
+            self._table.setItem(i, 5, qm_item)
+
             attivo_item = QTableWidgetItem("Sì" if p["attivo"] else "No")
             attivo_item.setForeground(QColor(C["primary"] if p["attivo"] else C["error"]))
-            self._table.setItem(i, 5, attivo_item)
+            self._table.setItem(i, 6, attivo_item)
 
             color_item = self._table.item(i, 0)
             if color_item:
@@ -395,7 +427,8 @@ class GestioneProdotti(QDialog):
         else:
             self._db.modifica_prodotto(
                 prodotto["id"], prodotto["nome"], prodotto["prezzo"],
-                prodotto["categoria"], prodotto["colore"], True
+                prodotto["categoria"], prodotto["colore"], True,
+                prodotto.get("foto", ""), prodotto.get("quantita_magazzino")
             )
         self._carica_prodotti()
         self.prodotti_modificati.emit()

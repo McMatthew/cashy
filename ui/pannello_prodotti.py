@@ -81,6 +81,21 @@ class _ProdottoTile(QFrame):
             }}
         """)
 
+        self._qty_label: QLabel | None = None
+        qm = prodotto.get("quantita_magazzino")
+        if qm is not None:
+            qty_color = C['error'] if qm <= 30 else C['on_surface_variant']
+            self._qty_label = QLabel(f"{qm} pz")
+            self._qty_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            self._qty_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {qty_color};
+                    font-size: 10pt;
+                    font-weight: 400;
+                    background: transparent;
+                }}
+            """)
+
         prezzo = prodotto.get("prezzo", 0.0)
         prezzo_str = f"€{prezzo:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         prezzo_color = C['on_primary_container'] if THEME_MODE == "light" else C['primary']
@@ -96,6 +111,8 @@ class _ProdottoTile(QFrame):
         """)
 
         layout.addWidget(self._nome_label)
+        if self._qty_label is not None:
+            layout.addWidget(self._qty_label)
         layout.addStretch()
         layout.addWidget(self._prezzo_label)
 

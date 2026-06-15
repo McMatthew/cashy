@@ -79,6 +79,10 @@ class DatabaseManager:
             if "foto" not in cols:
                 conn.execute("ALTER TABLE prodotti ADD COLUMN foto TEXT NOT NULL DEFAULT ''")
                 conn.commit()
+            # Migrate: add quantita_magazzino column if missing (NULL = scorta illimitata)
+            if "quantita_magazzino" not in cols:
+                conn.execute("ALTER TABLE prodotti ADD COLUMN quantita_magazzino INTEGER")
+                conn.commit()
             # Seed prodotti if empty
             row = conn.execute("SELECT COUNT(*) as cnt FROM prodotti").fetchone()
             if row["cnt"] == 0:
@@ -162,21 +166,21 @@ class DatabaseManager:
             ).fetchall()
         return {r["nome"] for r in rows}
 
-    def aggiungi_prodotto(self, nome, prezzo, categoria, colore, foto=""):
+    def aggiungi_prodotto(self, nome, prezzo, categoria, colore, foto="", quantita_magazzino=None):
         with self._connect() as conn:
             conn.execute(
-                "INSERT INTO prodotti (nome, prezzo, categoria, colore, foto) VALUES (?,?,?,?,?)",
-                (nome, prezzo, categoria, colore, foto),
+                "INSERT INTO prodotti (nome, prezzo, categoria, colore, foto, quantita_magazzino) VALUES (?,?,?,?,?,?)",
+                (nome, prezzo, categoria, colore, foto, quantita_magazzino),
             )
             if categoria:
                 conn.execute("INSERT OR IGNORE INTO categorie (nome) VALUES (?)", (categoria,))
             conn.commit()
 
-    def modifica_prodotto(self, pid, nome, prezzo, categoria, colore, attivo, foto=""):
+    def modifica_prodotto(self, pid, nome, prezzo, categoria, colore, attivo, foto="", quantita_magazzino=None):
         with self._connect() as conn:
             conn.execute(
-                "UPDATE prodotti SET nome=?, prezzo=?, categoria=?, colore=?, attivo=?, foto=? WHERE id=?",
-                (nome, prezzo, categoria, colore, int(attivo), foto, pid),
+                "UPDATE prodotti SET nome=?, prezzo=?, categoria=?, colore=?, attivo=?, foto=?, quantita_magazzino=? WHERE id=?",
+                (nome, prezzo, categoria, colore, int(attivo), foto, quantita_magazzino, pid),
             )
             if categoria:
                 conn.execute("INSERT OR IGNORE INTO categorie (nome) VALUES (?)", (categoria,))
@@ -199,6 +203,14 @@ class DatabaseManager:
                     "INSERT INTO righe_ordine (ordine_id, prodotto_id, nome_snap, prezzo_snap, quantita) VALUES (?,?,?,?,?)",
                     (ordine_id, r["id"], r["nome"], r["prezzo"], r["quantita"]),
                 )
+                # Scala il magazzino solo se il prodotto ne tiene traccia (quantita_magazzino non NULL).
+                # NULL = scorta illimitata, non viene mai decrementata.
+                if r["id"] is not None:
+                    conn.execute(
+                        "UPDATE prodotti SET quantita_magazzino = MAX(quantita_magazzino - ?, 0) "
+                        "WHERE id=? AND quantita_magazzino IS NOT NULL",
+                        (r["quantita"], r["id"]),
+                    )
             conn.commit()
         return ordine_id
 
@@ -257,7 +269,10 @@ class DatabaseManager:
     def export_csv_prodotti(self, path):
         prodotti = self.get_prodotti_tutti()
         with open(path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=["id", "nome", "prezzo", "categoria", "colore", "attivo"])
+            writer = csv.DictWriter(
+                f,
+                fieldnames=["id", "nome", "prezzo", "categoria", "colore", "attivo", "foto", "quantita_magazzino"],
+            )
             writer.writeheader()
             writer.writerows(prodotti)
 
@@ -271,9 +286,11 @@ class DatabaseManager:
                         prezzo = float(row["prezzo"])
                         categoria = row.get("categoria", "")
                         colore = row.get("colore", "#1a2a3a")
+                        qm_raw = (row.get("quantita_magazzino") or "").strip()
+                        quantita_magazzino = int(qm_raw) if qm_raw else None
                         conn.execute(
-                            "INSERT INTO prodotti (nome, prezzo, categoria, colore) VALUES (?,?,?,?)",
-                            (nome, prezzo, categoria, colore),
+                            "INSERT INTO prodotti (nome, prezzo, categoria, colore, quantita_magazzino) VALUES (?,?,?,?,?)",
+                            (nome, prezzo, categoria, colore, quantita_magazzino),
                         )
                     except (KeyError, ValueError):
                         continue
@@ -281,6 +298,17 @@ class DatabaseManager:
 
     def annulla_ordine(self, ordine_id: int):
         with self._connect() as conn:
+            # Ripristina il magazzino per i prodotti tracciati prima di eliminare le righe.
+            righe = conn.execute(
+                "SELECT prodotto_id, quantita FROM righe_ordine WHERE ordine_id = ?", (ordine_id,)
+            ).fetchall()
+            for r in righe:
+                if r["prodotto_id"] is not None:
+                    conn.execute(
+                        "UPDATE prodotti SET quantita_magazzino = quantita_magazzino + ? "
+                        "WHERE id=? AND quantita_magazzino IS NOT NULL",
+                        (r["quantita"], r["prodotto_id"]),
+                    )
             conn.execute("DELETE FROM righe_ordine WHERE ordine_id = ?", (ordine_id,))
             conn.execute("DELETE FROM ordini WHERE id = ?", (ordine_id,))
             conn.commit()

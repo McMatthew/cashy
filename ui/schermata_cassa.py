@@ -77,6 +77,9 @@ class SchermataCassa(QMainWindow):
         self.pannello_carrello.ordine_completato.connect(
             self._on_ordine_completato
         )
+        self.pannello_carrello.ordine_completato.connect(
+            lambda _: self.pannello_prodotti.ricarica_prodotti()
+        )
 
         # ── Start maximized ───────────────────────────────────────────
         self.showMaximized()
@@ -177,3 +180,5 @@ class SchermataCassa(QMainWindow):
         from ui.storico_ordini import StoricoOrdini
         dlg = StoricoOrdini(self.db, self.config, self)
         dlg.exec()
+        # Un eventuale annullamento ordine ripristina le scorte: ricarico la griglia.
+        self.pannello_prodotti.ricarica_prodotti()
