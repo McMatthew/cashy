@@ -8,6 +8,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QColor, QPixmap, QIcon
 from ui.theme import C
 from core.database import DatabaseManager
+from ui.bluetooth_listino import InviaListinoDialog, RiceviListinoDialog
 
 
 class _FormProdotto(QDialog):
@@ -298,6 +299,16 @@ class GestioneProdotti(QDialog):
         btn_export.clicked.connect(self._export_csv)
         btn_prodotti.addWidget(btn_export)
 
+        btn_invia_bt = QPushButton("Invia listino BT")
+        btn_invia_bt.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_invia_bt.clicked.connect(self._invia_listino_bt)
+        btn_prodotti.addWidget(btn_invia_bt)
+
+        btn_ricevi_bt = QPushButton("Ricevi listino BT")
+        btn_ricevi_bt.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_ricevi_bt.clicked.connect(self._ricevi_listino_bt)
+        btn_prodotti.addWidget(btn_ricevi_bt)
+
         tp_layout.addLayout(btn_prodotti)
         tabs.addTab(tab_prodotti, "Prodotti")
 
@@ -467,6 +478,20 @@ class GestioneProdotti(QDialog):
                 QMessageBox.information(self, "Esportazione completata", "Prodotti esportati con successo.")
             except Exception as e:
                 QMessageBox.critical(self, "Errore", f"Errore durante l'esportazione:\n{e}")
+
+    def _invia_listino_bt(self):
+        dlg = InviaListinoDialog(self._db, parent=self)
+        dlg.exec()
+
+    def _ricevi_listino_bt(self):
+        dlg = RiceviListinoDialog(self._db, parent=self)
+        dlg.listino_importato.connect(self._on_listino_importato)
+        dlg.exec()
+
+    def _on_listino_importato(self):
+        self._carica_prodotti()
+        self._carica_categorie()
+        self.prodotti_modificati.emit()
 
     # ── Categorie ─────────────────────────────────────────────────────
 
