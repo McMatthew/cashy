@@ -1,3 +1,7 @@
+import os
+
+_ICONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "icons")
+
 _C_DARK: dict = {
     "background":                "#0b1326",
     "surface":                   "#0b1326",
@@ -65,6 +69,31 @@ _C_LIGHT: dict = {
 C: dict = {}
 GLOBAL_STYLESHEET: str = ""
 THEME_MODE: str = "dark"
+# Absolute, forward-slashed paths to the spinbox chevron SVGs (Qt url() needs
+# forward slashes). Populated/recoloured per theme by _generate_icons().
+_ICONS: dict = {}
+
+_CHEVRON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" '
+    'viewBox="0 0 10 10"><path d="{path}" fill="none" stroke="{color}" '
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>\n'
+)
+_CHEVRON_PATHS = {"chevron-up": "M2 6.5 L5 3.5 L8 6.5", "chevron-down": "M2 3.5 L5 6.5 L8 3.5"}
+
+
+def _generate_icons(t: dict) -> None:
+    """Write the chevron SVGs recoloured for the current theme and record
+    their absolute paths in _ICONS for the stylesheet to reference."""
+    os.makedirs(_ICONS_DIR, exist_ok=True)
+    color = t["on_surface_variant"]
+    for name, d in _CHEVRON_PATHS.items():
+        fpath = os.path.join(_ICONS_DIR, f"{name}.svg")
+        try:
+            with open(fpath, "w", encoding="utf-8") as f:
+                f.write(_CHEVRON_SVG.format(path=d, color=color))
+        except OSError:
+            pass
+        _ICONS[name] = os.path.abspath(fpath).replace("\\", "/")
 
 
 def _build_stylesheet(t: dict) -> str:
@@ -218,16 +247,29 @@ QLineEdit:read-only {{
 }}
 
 QDoubleSpinBox::up-button, QDoubleSpinBox::down-button,
-QSpinBox::up-button, QSpinBox::down-button {{
-    background-color: {t['surface_container_highest']};
+QSpinBox::up-button, QSpinBox::down-button, QComboBox::down-button {{
     border: none;
     border-radius: 4px;
     width: 20px;
 }}
 
 QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover,
-QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
+QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+QComboBox::up-button:hover, QComboBox::down-button:hover
+ {{
     background-color: {t['surface_bright']};
+}}
+
+QDoubleSpinBox::up-arrow, QSpinBox::up-arrow, QComboBox::up-arrow {{
+    image: url("{_ICONS['chevron-up']}");
+    width: 10px;
+    height: 10px;
+}}
+
+QDoubleSpinBox::down-arrow, QSpinBox::down-arrow, QComboBox::down-arrow {{
+    image: url("{_ICONS['chevron-down']}");
+    width: 10px;
+    height: 10px;
 }}
 
 /* ── ComboBox ─────────────────────────────────────────────────── */
@@ -247,15 +289,6 @@ QComboBox:focus {{
 QComboBox::drop-down {{
     border: none;
     width: 24px;
-}}
-
-QComboBox::down-arrow {{
-    image: none;
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-    border-top: 6px solid {t['on_surface_variant']};
-    width: 0;
-    height: 0;
 }}
 
 QComboBox QAbstractItemView {{
@@ -516,6 +549,7 @@ def set_theme(mode: str = "dark") -> None:
     tokens = _C_LIGHT if mode == "light" else _C_DARK
     C.clear()
     C.update(tokens)
+    _generate_icons(C)
     GLOBAL_STYLESHEET = _build_stylesheet(C)
 
 
