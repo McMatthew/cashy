@@ -59,9 +59,16 @@ def main():
     # Apply global stylesheet (read after set_theme so the string is current)
     app.setStyleSheet(_theme.GLOBAL_STYLESHEET)
 
+    # Show the boot splash before the (slower) main window is built.
+    from ui.splash import make_splash
+    splash = make_splash()
+    splash.show()
+    app.processEvents()
+
     from ui.schermata_cassa import SchermataCassa
     window = SchermataCassa(config)
     # showMaximized is called inside SchermataCassa.__init__
+    splash.finish(window)
 
     sys.exit(app.exec())
 
