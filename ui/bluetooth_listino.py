@@ -8,18 +8,21 @@
 Tutto l'I/O di rete avviene in QThread dedicati per non bloccare l'interfaccia.
 """
 
+import json
 import socket
 import threading
+import time
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QListWidget, QListWidgetItem, QMessageBox, QWidget
+    QListWidget, QListWidgetItem, QMessageBox, QWidget, QTextEdit
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from ui.theme import C
 from core.database import DatabaseManager
 from core import bluetooth_sync as bt
+from core import stock_receiver as sr
 
 
 # ── Worker: scoperta dispositivi ────────────────────────────────────────────
@@ -427,6 +430,218 @@ class RiceviListinoDialog(QDialog):
             self._worker.richiedi_stop()
             # Sblocca un'eventuale attesa di decisione (es. chiusura durante la modale).
             self._worker.imposta_esito(bt.ACK_RIFIUTATO)
+            self._worker.wait(3000)
+
+
+# ── Ricezione scorte (protocollo cashy.stock-transfer, app mobile) ───────────
+
+class _RicezioneScorteWorker(QThread):
+    """Ascolta un singolo trasferimento di scorte via Bluetooth SPP, lo applica al
+    DB automaticamente (per rispettare i 12 s di attesa ack del client) e invia
+    l'ack JSON. Ciclo di vita "uno e chiudi": accetta una connessione poi termina.
+    """
+    in_ascolto = pyqtSignal(object)        # canale RFCOMM (int) o None
+    completato = pyqtSignal(dict, str)     # (ricevuti, indirizzo mittente)
+    errore = pyqtSignal(str)
+    log = pyqtSignal(str)                  # riga di diagnostica per la UI
+    terminato = pyqtSignal()
+
+    def __init__(self, db: DatabaseManager, parent=None):
+        super().__init__(parent)
+        self._db = db
+        self._stop = threading.Event()
+
+    def richiedi_stop(self):
+        self._stop.set()
+
+    def run(self):
+        srv = None
+        conn = None
+        _log = self.log.emit
+        try:
+            try:
+                _log("Apertura del server Bluetooth…")
+                srv, canale = sr.apri_server(log=_log)
+            except Exception as e:  # noqa: BLE001
+                _log(f"ERRORE apertura server: {e}")
+                self.errore.emit(
+                    f"Impossibile mettersi in ascolto via Bluetooth sul canale "
+                    f"{sr.CANALE_SCORTE}:\n{e}\n\n"
+                    "Verifica che il Bluetooth sia attivo e che non ci sia un'altra "
+                    "finestra 'Ricevi scorte' già aperta."
+                )
+                return
+
+            self.in_ascolto.emit(canale)
+            _log("In attesa di una connessione dal telefono…")
+            risultato = bt.accetta_con_stop(srv, self._stop)
+            if risultato is None:
+                _log("Ascolto interrotto (finestra chiusa).")
+                return  # stop richiesto prima di ricevere
+
+            conn, addr = risultato
+            addr_str = addr[0] if isinstance(addr, (tuple, list)) else str(addr)
+            _log(f"Connessione accettata da {addr_str}. Lettura del payload…")
+
+            try:
+                riga = sr.leggi_messaggio_delimitato(conn, log=_log)
+                _log(f"Payload completo: {len(riga)} caratteri. Validazione…")
+                categorie, prodotti = sr.valida_ed_estrai(riga)
+                _log(f"Protocollo valido: {len(categorie)} categorie, {len(prodotti)} prodotti. Applico…")
+                ricevuti = self._db.applica_trasferimento_scorte(categorie, prodotti)
+                ack = {"ok": True, "ricevuti": ricevuti}
+            except json.JSONDecodeError:
+                _log("Payload JSON malformato.")
+                ack = {"ok": False, "error": "JSON malformato"}
+            except ValueError as e:  # protocollo/versione/payload non validi
+                _log(f"Payload rifiutato: {e}")
+                ack = {"ok": False, "error": str(e)}
+            except Exception as e:  # noqa: BLE001
+                _log(f"Errore durante la ricezione: {e}")
+                ack = {"ok": False, "error": str(e)}
+
+            _log(f"Invio ack: {ack}")
+            sr.invia_ack(conn, ack)
+            if ack.get("ok"):
+                self.completato.emit(ack["ricevuti"], addr_str)
+            else:
+                self.errore.emit(ack.get("error", "Errore sconosciuto"))
+        finally:
+            for s in (conn, srv):
+                if s is not None:
+                    try:
+                        s.close()
+                    except OSError:
+                        pass
+            self.terminato.emit()
+
+
+class RiceviScorteDialog(QDialog):
+    """Mette Cashy in ascolto di un trasferimento di scorte dall'app mobile.
+
+    A differenza di :class:`RiceviListinoDialog` (sync Cashy↔Cashy che sostituisce
+    il catalogo previa conferma), qui il payload viene applicato in **upsert per
+    nome** e **automaticamente**, senza conferma: il client attende l'ack entro 12 s.
+    """
+    scorte_ricevute = pyqtSignal()
+
+    def __init__(self, db: DatabaseManager, parent=None):
+        super().__init__(parent)
+        self._db = db
+        self._worker: _RicezioneScorteWorker | None = None
+
+        self.setWindowTitle("Ricevi scorte via Bluetooth")
+        self.setMinimumWidth(460)
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.setStyleSheet(f"background-color: {C['surface_container']}; color: {C['on_surface']};")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(14)
+
+        title = QLabel("Ricevi scorte via Bluetooth")
+        title.setStyleSheet(f"font-size: 13pt; font-weight: 700; color: {C['on_surface']}; background: transparent;")
+        layout.addWidget(title)
+
+        info = QLabel(
+            "Questo computer è in attesa di ricevere scorte dall'app mobile Cashy Quick Stock.\n"
+            f"Assicurati che il telefono sia accoppiato con questo computer ({socket.gethostname()}), "
+            "poi sul telefono seleziona i prodotti e premi 'Invia via Bluetooth'.\n\n"
+            "I prodotti e le categorie ricevuti verranno aggiornati o aggiunti "
+            "(abbinati per nome); il resto del catalogo non viene toccato."
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 9pt; background: transparent;")
+        layout.addWidget(info)
+
+        self._stato = QLabel("Avvio ascolto…")
+        self._stato.setStyleSheet(
+            f"color: {C['primary']}; font-size: 10pt; font-weight: 600; background: transparent;"
+        )
+        self._stato.setWordWrap(True)
+        layout.addWidget(self._stato)
+
+        log_label = QLabel("Diagnostica:")
+        log_label.setStyleSheet(f"color: {C['on_surface_variant']}; font-size: 9pt; background: transparent;")
+        layout.addWidget(log_label)
+
+        self._log_view = QTextEdit()
+        self._log_view.setReadOnly(True)
+        self._log_view.setMinimumHeight(160)
+        self._log_view.setStyleSheet(
+            f"QTextEdit {{ background-color: {C['surface_container_high']};"
+            f" color: {C['on_surface']}; border: 1px solid {C['border_secondary']};"
+            f" border-radius: 8px; font-family: Consolas, monospace; font-size: 8pt; }}"
+        )
+        layout.addWidget(self._log_view)
+
+        btn_row = QHBoxLayout()
+        self._btn_copia = QPushButton("Copia log")
+        self._btn_copia.setObjectName("btn_secondary")
+        self._btn_copia.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_copia.clicked.connect(self._copia_log)
+        btn_row.addWidget(self._btn_copia)
+        btn_row.addStretch()
+        self._btn_chiudi = QPushButton("Chiudi")
+        self._btn_chiudi.setObjectName("btn_secondary")
+        self._btn_chiudi.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._btn_chiudi.clicked.connect(self.reject)
+        btn_row.addWidget(self._btn_chiudi)
+        layout.addLayout(btn_row)
+
+        self._avvia_ascolto()
+
+    def _avvia_ascolto(self):
+        self._worker = _RicezioneScorteWorker(self._db, self)
+        self._worker.in_ascolto.connect(self._on_in_ascolto)
+        self._worker.completato.connect(self._on_completato)
+        self._worker.errore.connect(self._on_errore)
+        self._worker.log.connect(self._appendi_log)
+        self._worker.terminato.connect(self._on_terminato)
+        self._worker.start()
+
+    def _appendi_log(self, riga: str):
+        self._log_view.append(f"[{time.strftime('%H:%M:%S')}] {riga}")
+
+    def _copia_log(self):
+        from PyQt6.QtWidgets import QApplication
+        QApplication.clipboard().setText(self._log_view.toPlainText())
+        self._btn_copia.setText("Copiato ✓")
+
+    def _on_in_ascolto(self, canale):
+        suffisso = f"  (canale RFCOMM {canale})" if canale else ""
+        self._stato.setText(f"In ascolto…{suffisso}")
+
+    def _on_completato(self, ricevuti: dict, mittente: str):
+        n_prod = int(ricevuti.get("prodotti", 0))
+        n_cat = int(ricevuti.get("categorie", 0))
+        self._stato.setText(f"Ricevuti {n_prod} prodotti e {n_cat} categorie da {mittente}.")
+        self.scorte_ricevute.emit()
+        QMessageBox.information(
+            self, "Scorte ricevute",
+            f"Trasferimento completato da {mittente}:\n"
+            f"• {n_prod} prodotti\n• {n_cat} categorie\n\n"
+            "Il catalogo è stato aggiornato."
+        )
+
+    def _on_errore(self, msg: str):
+        self._stato.setText("Ricezione non riuscita.")
+        QMessageBox.critical(self, "Bluetooth", f"Ricezione non riuscita:\n{msg}")
+
+    def _on_terminato(self):
+        self._btn_chiudi.setText("Chiudi")
+
+    def reject(self):
+        self._ferma_worker()
+        super().reject()
+
+    def closeEvent(self, event):
+        self._ferma_worker()
+        super().closeEvent(event)
+
+    def _ferma_worker(self):
+        if self._worker and self._worker.isRunning():
+            self._worker.richiedi_stop()
             self._worker.wait(3000)
 
 

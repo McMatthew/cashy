@@ -342,6 +342,82 @@ class DatabaseManager:
                 )
             conn.commit()
 
+    def applica_trasferimento_scorte(self, categorie: list, prodotti: list) -> dict:
+        """Upsert (per ``nome``, case-insensitive) di categorie e poi prodotti, in
+        un'unica transazione. Usato dal ricevitore Bluetooth "Ricevi scorte"
+        (protocollo ``cashy.stock-transfer`` dell'app mobile Cashy Quick Stock).
+
+        A differenza di :meth:`importa_listino` NON svuota il catalogo: aggiorna le
+        righe già presenti (match sul ``nome`` case-insensitive) e inserisce quelle
+        nuove. Le categorie vengono applicate PRIMA dei prodotti. Il payload del
+        client può contenere ``null`` dove lo schema Cashy ha colonne ``NOT NULL``
+        (``colore``/``foto``/``categoria``): tali valori vengono coalescizzati sui
+        default. Ritorna i conteggi ``{"prodotti": n, "categorie": m}``.
+
+        Solleva un'eccezione in caso di payload malformato: l'intera transazione fa
+        rollback (nessuno stato parziale).
+        """
+        if not isinstance(categorie, list) or not isinstance(prodotti, list):
+            raise ValueError("Payload malformato: 'categorie' e 'prodotti' devono essere liste.")
+
+        n_cat = 0
+        n_prod = 0
+        with self._connect() as conn:
+            for c in categorie:
+                nome = str(c["nome"])
+                scontrino = int(c.get("scontrino_separato") or 0)
+                row = conn.execute(
+                    "SELECT id FROM categorie WHERE nome = ? COLLATE NOCASE", (nome,)
+                ).fetchone()
+                if row:
+                    conn.execute(
+                        "UPDATE categorie SET scontrino_separato=? WHERE id=?",
+                        (scontrino, row["id"]),
+                    )
+                else:
+                    conn.execute(
+                        "INSERT INTO categorie (nome, scontrino_separato) VALUES (?,?)",
+                        (nome, scontrino),
+                    )
+                n_cat += 1
+
+            for p in prodotti:
+                nome = str(p["nome"])
+                prezzo = float(p.get("prezzo") or 0)
+                categoria = str(p.get("categoria") or "")
+                colore = str(p.get("colore") or "#1a2a3a")
+                foto = str(p.get("foto") or "")
+                attivo_raw = p.get("attivo", 1)
+                attivo = 1 if attivo_raw is None else int(attivo_raw)
+                qm = p.get("quantita_magazzino")
+                ls = p.get("limite_scorta")
+                qm = int(qm) if qm is not None else None
+                ls = int(ls) if ls is not None else None
+                row = conn.execute(
+                    "SELECT id FROM prodotti WHERE nome = ? COLLATE NOCASE", (nome,)
+                ).fetchone()
+                if row:
+                    conn.execute(
+                        "UPDATE prodotti SET prezzo=?, categoria=?, colore=?, attivo=?, "
+                        "foto=?, quantita_magazzino=?, limite_scorta=? WHERE id=?",
+                        (prezzo, categoria, colore, attivo, foto, qm, ls, row["id"]),
+                    )
+                else:
+                    conn.execute(
+                        "INSERT INTO prodotti (nome, prezzo, categoria, colore, attivo, foto, "
+                        "quantita_magazzino, limite_scorta) VALUES (?,?,?,?,?,?,?,?)",
+                        (nome, prezzo, categoria, colore, attivo, foto, qm, ls),
+                    )
+                # Mantiene coerente la tabella categorie se il prodotto porta una
+                # categoria non ancora presente (come fa aggiungi_prodotto).
+                if categoria:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO categorie (nome) VALUES (?)", (categoria,)
+                    )
+                n_prod += 1
+            conn.commit()
+        return {"prodotti": n_prod, "categorie": n_cat}
+
     def export_csv_prodotti(self, path):
         prodotti = self.get_prodotti_tutti()
         with open(path, "w", newline="", encoding="utf-8") as f:

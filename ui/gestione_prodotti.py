@@ -2,13 +2,14 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox,
     QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QColorDialog, QFileDialog,
-    QWidget, QSizePolicy, QTabWidget, QCheckBox, QInputDialog
+    QWidget, QSizePolicy, QTabWidget, QCheckBox, QInputDialog,
+    QScrollArea, QFrame, QApplication
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QColor, QPixmap, QIcon
 from ui.theme import C
 from core.database import DatabaseManager
-from ui.bluetooth_listino import InviaListinoDialog, RiceviListinoDialog
+from ui.bluetooth_listino import InviaListinoDialog, RiceviListinoDialog, RiceviScorteDialog
 
 
 class _FormProdotto(QDialog):
@@ -23,13 +24,29 @@ class _FormProdotto(QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(f"background-color: {C['surface_container']}; color: {C['on_surface']};")
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(14)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(20, 20, 20, 20)
+        root.setSpacing(14)
 
         title = QLabel("Modifica Prodotto" if prodotto else "Nuovo Prodotto")
         title.setStyleSheet(f"font-size: 13pt; font-weight: 700; color: {C['on_surface']}; background: transparent;")
-        layout.addWidget(title)
+        root.addWidget(title)
+
+        # Scrollable form body so the dialog fits on small displays; the
+        # action buttons stay pinned outside the scroll area (below).
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("background: transparent;")
+        content = QWidget()
+        content.setStyleSheet("background: transparent;")
+        scroll.setWidget(content)
+        root.addWidget(scroll, 1)
+
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(0, 0, 6, 0)
+        layout.setSpacing(14)
 
         layout.addWidget(self._field_label("Nome"))
         self._nome_input = QLineEdit()
@@ -154,7 +171,15 @@ class _FormProdotto(QDialog):
         btn_salva.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_salva.clicked.connect(self._salva)
         btn_row.addWidget(btn_salva)
-        layout.addLayout(btn_row)
+        root.addLayout(btn_row)
+
+        # Cap the dialog height to the available screen so it never overflows
+        # a small display; the form body scrolls if it needs more room.
+        screen = QApplication.primaryScreen()
+        if screen:
+            avail_h = screen.availableGeometry().height()
+            self.setMaximumHeight(avail_h - 60)
+            self.resize(460, min(640, avail_h - 60))
 
     def _field_label(self, text: str) -> QLabel:
         lbl = QLabel(text)
@@ -308,6 +333,11 @@ class GestioneProdotti(QDialog):
         btn_ricevi_bt.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_ricevi_bt.clicked.connect(self._ricevi_listino_bt)
         btn_prodotti.addWidget(btn_ricevi_bt)
+
+        btn_ricevi_scorte = QPushButton("Ricevi scorte BT")
+        btn_ricevi_scorte.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_ricevi_scorte.clicked.connect(self._ricevi_scorte_bt)
+        btn_prodotti.addWidget(btn_ricevi_scorte)
 
         tp_layout.addLayout(btn_prodotti)
         tabs.addTab(tab_prodotti, "Prodotti")
@@ -486,6 +516,11 @@ class GestioneProdotti(QDialog):
     def _ricevi_listino_bt(self):
         dlg = RiceviListinoDialog(self._db, parent=self)
         dlg.listino_importato.connect(self._on_listino_importato)
+        dlg.exec()
+
+    def _ricevi_scorte_bt(self):
+        dlg = RiceviScorteDialog(self._db, parent=self)
+        dlg.scorte_ricevute.connect(self._on_listino_importato)
         dlg.exec()
 
     def _on_listino_importato(self):

@@ -1,6 +1,5 @@
 import json
 import shutil
-from pathlib import Path
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QLineEdit, QComboBox, QFileDialog, QMessageBox, QFrame,
@@ -8,6 +7,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from ui.theme import C
 from core.database import DatabaseManager
+from core.paths import get_app_dir
 from core.receipt import genera_scontrino, stampa_termico
 
 try:
@@ -15,8 +15,6 @@ try:
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 class _SectionTitle(QLabel):
@@ -299,7 +297,7 @@ class Impostazioni(QDialog):
         theme_changed = new_theme != self._config.get("theme", "dark")
         self._config["theme"] = new_theme
 
-        config_path = PROJECT_ROOT / "config.json"
+        config_path = get_app_dir() / "config.json"
         try:
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(self._config, f, ensure_ascii=False, indent=2)
