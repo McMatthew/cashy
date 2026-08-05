@@ -2,13 +2,14 @@ import json
 import shutil
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QLineEdit, QComboBox, QFileDialog, QMessageBox, QFrame,
+    QLineEdit, QComboBox, QFileDialog, QMessageBox, QFrame, QSpinBox,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from ui.theme import C
 from core.database import DatabaseManager
 from core.paths import get_app_dir
 from core.receipt import genera_scontrino, stampa_termico
+from core.font_scontrino import MIN_PT, MAX_PT, get_pt
 
 try:
     import psutil
@@ -170,6 +171,13 @@ class Impostazioni(QDialog):
         btn_row_stampa.addStretch()
 
         col.addLayout(btn_row_stampa)
+
+        col.addWidget(_FieldLabel("Dimensione carattere scontrino (pt)"))
+        self._font_spin = QSpinBox()
+        self._font_spin.setRange(MIN_PT, MAX_PT)
+        self._font_spin.setValue(get_pt(self._config))
+        self._font_spin.setSuffix(" pt")
+        col.addWidget(self._font_spin)
         col.addWidget(self._make_sep())
 
         # ── Aspetto ──────────────────────────────────────────────────
@@ -266,10 +274,11 @@ class Impostazioni(QDialog):
             1.00, 1.00, 0.00, numero=0,
         )
         porta = self._porta_combo.currentText()
-        ok, err = stampa_termico(testo, porta)
+        config_anteprima = {**self._config, "font_scontrino_pt": self._font_spin.value()}
+        ok, err = stampa_termico(testo, porta, config_anteprima)
         if not ok:
             from ui.scontrino_dialog import ScontrinoDialog
-            dlg = ScontrinoDialog(testo, self, porta=porta)
+            dlg = ScontrinoDialog(testo, self, porta=porta, config=config_anteprima)
             dlg.exec()
 
     def _backup_db(self):
@@ -292,6 +301,7 @@ class Impostazioni(QDialog):
         self._config["orario_evento"] = self._orario_input.text().strip()
         self._config["messaggio_scontrino"] = self._messaggio_input.text().strip()
         self._config["porta_stampante"] = self._porta_combo.currentText()
+        self._config["font_scontrino_pt"] = self._font_spin.value()
 
         new_theme = self._tema_combo.currentData()
         theme_changed = new_theme != self._config.get("theme", "dark")

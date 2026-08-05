@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from core.font_scontrino import get_escpos_size
+
 WIDTH = 48
 
 try:
@@ -154,7 +156,7 @@ def _get_printer(porta: str):
     raise ValueError(f"Porta non supportata: {porta}")
 
 
-def stampa_termico(testo: str, porta: str) -> tuple[bool, str]:
+def stampa_termico(testo: str, porta: str, config: dict | None = None) -> tuple[bool, str]:
     """Send a single receipt to a printer.
 
     Dispatches to Windows raw ESC/POS for system printers,
@@ -162,12 +164,13 @@ def stampa_termico(testo: str, porta: str) -> tuple[bool, str]:
     """
     if not _is_escpos_porta(porta):
         from core.printing import stampa_silent
-        return stampa_silent(testo, porta)
+        return stampa_silent(testo, porta, config)
     if not HAS_ESCPOS:
         return False, "Libreria python-escpos non installata.\nInstallare con: pip install python-escpos"
     try:
+        width, height = get_escpos_size(config or {})
         printer = _get_printer(porta)
-        printer.set(align="left", font="a", bold=False, underline=0, width=1, height=1)
+        printer.set(align="left", font="a", bold=False, underline=0, width=width, height=height)
         printer.text(testo + "\n\n\n")
         printer.cut()
         return True, ""
@@ -175,16 +178,17 @@ def stampa_termico(testo: str, porta: str) -> tuple[bool, str]:
         return False, str(exc)
 
 
-def stampa_multiplo(testi: list[str], porta: str) -> tuple[bool, str]:
+def stampa_multiplo(testi: list[str], porta: str, config: dict | None = None) -> tuple[bool, str]:
     """Send multiple receipts to a printer, cutting between each."""
     if not _is_escpos_porta(porta):
         from core.printing import stampa_silent_multiplo
-        return stampa_silent_multiplo(testi, porta)
+        return stampa_silent_multiplo(testi, porta, config)
     if not HAS_ESCPOS:
         return False, "Libreria python-escpos non installata.\nInstallare con: pip install python-escpos"
     try:
+        width, height = get_escpos_size(config or {})
         printer = _get_printer(porta)
-        printer.set(align="left", font="a", bold=False, underline=0, width=1, height=1)
+        printer.set(align="left", font="a", bold=False, underline=0, width=width, height=height)
         for testo in testi:
             printer.text(testo + "\n\n\n")
             printer.cut()

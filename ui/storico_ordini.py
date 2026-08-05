@@ -229,7 +229,7 @@ class StoricoOrdini(QDialog):
             numero=ordine["id"],
         )
         porta = self._config.get("porta_stampante", "")
-        dlg = ScontrinoDialog(testo, self, porta=porta)
+        dlg = ScontrinoDialog(testo, self, porta=porta, config=self._config)
         dlg.exec()
 
     def _stampa_resoconto(self):
@@ -248,9 +248,9 @@ class StoricoOrdini(QDialog):
 
         testo = genera_resoconto(self._config, data_ora, righe_aggregate, n_ordini, totale)
         porta = self._config.get("porta_stampante", "")
-        ok, _ = stampa_termico(testo, porta)
+        ok, _ = stampa_termico(testo, porta, self._config)
         if not ok:
-            dlg = ScontrinoDialog(testo, self, porta=porta)
+            dlg = ScontrinoDialog(testo, self, porta=porta, config=self._config)
             dlg.exec()
 
     def _export_csv(self):

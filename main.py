@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
     "porta_stampante": "USB",
     "numero_progressivo": True,
     "theme": "dark",
+    "font_scontrino_pt": 10,
 }
 
 

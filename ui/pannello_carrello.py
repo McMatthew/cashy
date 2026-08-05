@@ -503,16 +503,16 @@ class PannelloCarrello(QWidget):
 
         all_texts = [testo_principale] + slips
         if len(all_texts) == 1:
-            ok, err = stampa_termico(testo_principale, self._config.get("porta_stampante", "USB"))
+            ok, err = stampa_termico(testo_principale, self._config.get("porta_stampante", "USB"), self._config)
         else:
-            ok, err = stampa_multiplo(slips, self._config.get("porta_stampante", "USB"))
+            ok, err = stampa_multiplo(slips, self._config.get("porta_stampante", "USB"), self._config)
 
         if not ok:
             sep = "\n" + "─" * 32 + "\n"
             combined = sep.join(all_texts)
             porta = self._config.get("porta_stampante", "")
             from ui.scontrino_dialog import ScontrinoDialog
-            dlg = ScontrinoDialog(combined, self, porta=porta)
+            dlg = ScontrinoDialog(combined, self, porta=porta, config=self._config)
             dlg.exec()
 
         self._clear_cart()

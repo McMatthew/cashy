@@ -5,10 +5,11 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtPrintSupport import QPrinter, QPrintDialog
 from ui.theme import C
+from core.font_scontrino import get_pt
 
 
 class ScontrinoDialog(QDialog):
-    def __init__(self, testo: str, parent=None, porta: str | None = None):
+    def __init__(self, testo: str, parent=None, porta: str | None = None, config: dict | None = None):
         super().__init__(parent)
         self.setWindowTitle("Scontrino")
         self.setMinimumSize(420, 520)
@@ -16,6 +17,7 @@ class ScontrinoDialog(QDialog):
         self.setStyleSheet(f"background-color: {C['surface_container']}; color: {C['on_surface']};")
         self._testo = testo
         self._porta = porta
+        self._config = config or {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -29,7 +31,7 @@ class ScontrinoDialog(QDialog):
 
         text_edit = QTextEdit()
         text_edit.setReadOnly(True)
-        font = QFont("Courier New", 10)
+        font = QFont("Courier New", get_pt(self._config))
         font.setFixedPitch(True)
         text_edit.setFont(font)
         text_edit.setPlainText(testo)
@@ -65,7 +67,7 @@ class ScontrinoDialog(QDialog):
     def _stampa(self):
         if self._porta:
             from core.receipt import stampa_termico
-            ok, _ = stampa_termico(self._testo, self._porta)
+            ok, _ = stampa_termico(self._testo, self._porta, self._config)
             if ok:
                 return
         # Fallback: dialogo di stampa Windows (GDI)
